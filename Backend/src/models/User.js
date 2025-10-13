@@ -29,6 +29,18 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      type: String,
+      default: null,
+    },
+    otpExpiesAt: {
+      type: Date,
+      default: null,
+    },
     contacts: [
       {
         type: mongoose.Schema.Types.ObjectId,
