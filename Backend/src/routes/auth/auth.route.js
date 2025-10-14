@@ -24,6 +24,7 @@ const LoginSchema = z.object({
   password: z.string().min(6).max(100),
 });
 
+// Api to register new user
 authRouter.post("/signup", async (req, res) => {
   const { data, success, error } = SignupSchema.safeParse(req.body);
   if (!success) {
@@ -83,6 +84,8 @@ authRouter.post("/signup", async (req, res) => {
     });
   }
 });
+
+// Api to login user
 authRouter.post("/login", async (req, res) => {
   const { data, success, error } = LoginSchema.safeParse(req.body);
   if (!success) {
@@ -104,13 +107,13 @@ authRouter.post("/login", async (req, res) => {
       });
     }
 
-    // if (!user.isEmailVerified) {
-    //   return res.status(StatusCodes.UNAUTHORIZED).json({
-    //     success: false,
-    //     error: true,
-    //     message: "Email is not verified. Please verify your email.",
-    //   });
-    // }
+    if (!user.isEmailVerified) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        error: true,
+        message: "Email is not verified. Please verify your email.",
+      });
+    }
 
     const isPasswordCorrect = comparePassword(data.password, user.password);
     if (!isPasswordCorrect) {
@@ -130,12 +133,108 @@ authRouter.post("/login", async (req, res) => {
       },
     });
   } catch (error) {
-    console.log("error ==>", error);
-
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       error: true,
       message: "Error in logging in. Please try again.",
+    });
+  }
+});
+
+// Api to verify OTP
+authRouter.post("/verify-otp", async (req, res) => {
+  const { otp } = req.body;
+  console.log("otp ==>", otp);
+
+  const otpString = otp + "";
+  const isOtpNumeric = !Number.isNaN(+otpString);
+  if (!isOtpNumeric || otpString.length !== 6)
+    return res.json({
+      success: false,
+      error: true,
+      message: "Invalid OTP",
+    });
+  try {
+    const user = await User.findOne({
+      otp: otpString,
+      otpExpiesAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        error: true,
+        message: "Invalid or Expired OTP",
+      });
+    }
+    user.isEmailVerified = true;
+    user.otp = null;
+    user.otpExpiesAt = null;
+
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Email verified successfully",
+      data: {
+        user,
+        token: createAuthToken(user),
+      },
+    });
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: true,
+      message: "Error in verifying OTP. Please try again.",
+    });
+  }
+});
+
+// Api to resend OTP
+authRouter.post("/resend-otp", async (req, res) => {
+  const { email } = req.body;
+  const { data, success } = z.string().email().safeParse(email);
+
+  if (!success)
+    return res.json({
+      success: false,
+      error: true,
+      message: "Invalid email",
+    });
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: true,
+        message: "User not found with this email",
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        error: true,
+        message: "Email is already verified",
+      });
+    }
+
+    const OTP = generateOTP();
+    const otpExpiesAt = dayjs().add(3, "minute").toDate();
+    sendEmailOTP(data, OTP);
+    user.otp = OTP;
+    user.otpExpiesAt = otpExpiesAt;
+    await user.save();
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "OTP sent successfully",
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: true,
+      message: "Error in resending OTP. Please try again.",
     });
   }
 });

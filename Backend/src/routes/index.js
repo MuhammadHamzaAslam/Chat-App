@@ -9,7 +9,7 @@ router.use("/auth", authRouter);
 router.get("/", (req, res) =>
   res.status(StatusCodes.CREATED).json({
     success: true,
-    message: "API FETCHED SUCCESSFULLY",
+    message: "CHAT APP BACKEND IS WORKING...",
     timestamp: Date.now(),
   })
 );
