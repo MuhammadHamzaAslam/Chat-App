@@ -239,4 +239,84 @@ authRouter.post("/resend-otp", async (req, res) => {
   }
 });
 
+// Api to update user profile deatil
+authRouter.put("/update-profile/:id", async (req, res) => {
+  const { id } = req.params;
+  const updatePayload = req.body;
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: true,
+        message: "User not found with this id",
+      });
+    }
+    Object.assign(user, updatePayload);
+
+    await user.save();
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "User profile updated successfully",
+      data: {
+        user,
+      },
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: true,
+      message: "Error in updating user profile. Please try again.",
+    });
+  }
+});
+
+// API to get all Users
+authRouter.get("/get-all-users", async (req, res) => {
+  try {
+    const users = await User.find();
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: {
+        users,
+      },
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: true,
+      message: "Error in fetching users. Please try again.",
+    });
+  }
+});
+
+// API to get single User by id
+authRouter.get("/get-user/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: true,
+        message: "User not found with this id",
+      });
+    }
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "User fetched successfully",
+      data: {
+        user,
+      },
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: true,
+      message: "Error in fetching user. Please try again.",
+    });
+  }
+});
+
 export default authRouter;
