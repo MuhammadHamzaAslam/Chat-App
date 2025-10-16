@@ -11,22 +11,27 @@ import SocketHandler from "./socket/index.js";
 const app = express();
 const PORT = env.PORT;
 const server = createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 
 app.use(cors()); // Enable CORS for all routes
 app.use(helmet()); // Set security-related headers
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 
-app.use("/api/v1", router);
-
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
+app.use("/api/v1", router);
+
 SocketHandler(io);
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   connectDB();
 });

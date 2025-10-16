@@ -47,7 +47,7 @@ const MessageSchema = new mongoose.Schema({
     title: { type: String },
     description: { type: String },
     imageURL: { type: String },
-    default: null,
+    default: {},
   },
 
   // Custom Message Reactions (Embedded Array)
